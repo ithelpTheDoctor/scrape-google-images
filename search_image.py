@@ -112,7 +112,7 @@ def download_images(query):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description = "Download images from google")
-    parser.add_argument("-k", "--keyword", help = "Example: Help argument", required = True, default = "")
+    parser.add_argument("-k", "--keyword", help = "Example: scraping or \"webscraping and data mining\"", required = True, default = "")
     arguments = parser.parse_args()
     keyword= arguments.keyword
     
