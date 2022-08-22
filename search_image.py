@@ -27,7 +27,7 @@ headers = {
 
 all_images = {}
 
-thread_limit = 0 # don't change this
+threads_running = 0 # don't change this
 
 def get_extension(url):
     path = urlparse(url).path.strip('/')
@@ -40,22 +40,27 @@ def get_extension(url):
     
 
 def threaded_download(savepath,url):
-    global thread_limit    
-    print(url)
-    r = requests.get(url,headers=headers)
+    global threads_running   
+    
+    try:
+        r = requests.get(url,headers=headers)
+    except Exception as e:
+        print("Request Error : "+url)
+        threads_running-=1
+        return
+        
     if r.status_code==200:
-        if 'image' in r.headers.get('content-type',''):
+        if 'image' in r.headers.get('content-type','').lower():
             with open(savepath,'wb',) as f:
                 f.write(r.content)
+            print('Downloaded '+os.path.basename(savepath))  
         else:
-            print("Skipped "+url+" invalid content type.")
+            print("Not an Image : "+url)
             
-    elif r.status_code==404:
-        print("Skipped "+url+" 404 not found.")
     else:
-        print("Skipped "+url+" invalid response code.")
-        
-    thread_limit-=1 
+        print(f"{r.status_code} Error : "+url+" ")
+       
+    threads_running-=1 
 
 
 def collect_images_from_google(query):
@@ -91,7 +96,7 @@ def collect_images_from_google(query):
             no_more = 0
        
 def download_images(query):   
-    global thread_limit
+    global threads_running
     print("Downloading "+str(len(all_images))+" images")
     if not os.path.exists(os.path.join("Images",f"{query}")):
         os.makedirs(os.path.join("Images",f"{query}"))
@@ -102,17 +107,17 @@ def download_images(query):
             if os.path.getsize(image_save_path)>1:
                 continue     
         threading.Thread(target=threaded_download,kwargs={'url':image_link,'savepath':image_save_path}).start()  
-        thread_limit+=1
-        while thread_limit>9:
+        threads_running+=1
+        while threads_running>9:
             time.sleep(1)
 
-    while thread_limit>0:
+    while threads_running>0:
         time.sleep(1)
 
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description = "Download images from google")
-    parser.add_argument("-k", "--keyword", help = "Example: scraping or \"webscraping and data mining\"", required = True, default = "")
+    parser.add_argument("-k", "--keyword", help = "Example: Help argument", required = True, default = "")
     arguments = parser.parse_args()
     keyword= arguments.keyword
     
